@@ -1,6 +1,7 @@
 import json
 import os
 import string
+
 from nltk.stem import PorterStemmer
 
 DEFAULT_SEARCH_LIMIT = 5
@@ -21,24 +22,30 @@ def load_stopwords() -> list:
         lines = f.read().splitlines()
     return lines
 
-
-def format_text(input: str) -> str:
-    output = input.lower()
-    output = output.translate(str.maketrans("", "", string.punctuation))
-    return output
-
+def preprocess_text(text: str) -> str:
+    text = text.lower()
+    text = text.translate(str.maketrans("", "", string.punctuation))
+    return text
 
 def tokenize(input: str) -> list:
-    stemmer = PorterStemmer()
+    text = preprocess_text(input)
+    tokens = text.split()
+    valid_tokens = []
+    for token in tokens:
+        if token:
+            valid_tokens.append(token)
     stopwords = load_stopwords()
-    output = []
-    for word in input.split(" "):
-        word = format_text(word)
-        if word and word not in stopwords:
-            stem = stemmer.stem(word)
-            output.append(stem)
+    filtered_words = []
+    for word in valid_tokens:
+        if word not in stopwords:
+            filtered_words.append(word)
 
-    return output
+    stemmer = PorterStemmer()
+    stemmed_words = []
+    for word in filtered_words:
+        stemmed_words.append(stemmer.stem(word))
+    return stemmed_words
+
 
 def remove_stopwords(input: list, stopwords: list) -> list:
     output = []
