@@ -79,6 +79,7 @@ class SemanticSearch:
         for score, doc in sorted_scores[:limit]:
             result.append(
                 {
+                    "doc_id": doc.get("id"),
                     "score": score,
                     "title": doc.get("title"),
                     "description": doc.get("description"),

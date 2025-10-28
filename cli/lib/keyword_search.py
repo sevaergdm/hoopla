@@ -5,15 +5,7 @@ from lib.search_utils import BM25_B, BM25_K1, DEFAULT_SEARCH_LIMIT, tokenize
 def bm25_search_command(query: str, limit: int = 5):
     idx = InvertedIndex()
     idx.load()
-    search_results = idx.bm25_search(query, limit)
-    output = {}
-    for k, v in search_results.items():
-        doc_id = k
-        score = v
-        movie_title = idx.docmap[doc_id]["title"]
-        output[doc_id] = (movie_title, score)
-
-    return output
+    return idx.bm25_search(query, limit)
 
 
 def bm25_tf_command(doc_id: int, term: str, k1: float = BM25_K1, b: float = BM25_B):

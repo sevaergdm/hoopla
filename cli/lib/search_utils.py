@@ -7,6 +7,7 @@ from nltk.stem import PorterStemmer
 
 DEFAULT_SEARCH_LIMIT = 5
 SCORE_PRECISION = 3
+DEFAULT_K_VALUE = 60
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 MOVIES_PATH = os.path.join(PROJECT_ROOT, "data", "movies.json")

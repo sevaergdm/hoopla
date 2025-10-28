@@ -2,11 +2,9 @@ import math
 import os
 import pickle
 from collections import Counter, defaultdict
-from itertools import islice
-from typing import OrderedDict
 
-from lib.search_utils import (BM25_B, BM25_K1, PROJECT_ROOT, load_movies,
-                              tokenize)
+from lib.search_utils import (BM25_B, BM25_K1, PROJECT_ROOT,
+                              format_search_result, load_movies, tokenize)
 
 
 class InvertedIndex:
@@ -42,7 +40,7 @@ class InvertedIndex:
         total_docs = len(self.doc_lengths)
         for length in self.doc_lengths.values():
             total_length += length
-        
+
         return total_length / total_docs
 
     def get_tf(self, doc_id: int, term: str) -> int:
@@ -82,23 +80,33 @@ class InvertedIndex:
         term_doc_count = len(self.index[token])
         return math.log((doc_count - term_doc_count + 0.5) / (term_doc_count + 0.5) + 1)
 
-
     def bm25(self, doc_id: int, term: str) -> float:
         return self.get_bm25_tf(doc_id, term) * self.get_bm25_idf(term)
 
-    
-    def bm25_search(self, query: str, limit: int) -> dict[int, float]:
+    def bm25_search(self, query: str, limit: int) -> list[dict]:
         tokens = tokenize(query)
-        scores = defaultdict(float)
+        scores = {}
 
-        for token in tokens:
-            docs = self.get_documents(token)
-            for doc in docs:
-                scores[doc] += self.bm25(doc, token)
+        for doc_id in self.docmap:
+            score = 0.0
+            for token in tokens:
+                score += self.bm25(doc_id, token)
+            scores[doc_id] = score
 
-        sorted_scores = OrderedDict(sorted(scores.items(), key=lambda kv: kv[1], reverse=True))
-        return dict(islice(sorted_scores.items(), limit))
+        sorted_docs = sorted(scores.items(), key=lambda x: x[1], reverse=True)
 
+        results = []
+        for doc_id, score in sorted_docs[:limit]:
+            doc = self.docmap[doc_id]
+            formatted_result = format_search_result(
+                doc_id=doc["id"],
+                title=doc["title"],
+                document=doc["description"],
+                score=score,
+            )
+            results.append(formatted_result)
+
+        return results
 
     def get_tfidf(self, doc_id: int, term: str) -> float:
         tf = self.get_tf(doc_id, term)
