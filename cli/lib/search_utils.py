@@ -1,10 +1,12 @@
 import json
 import os
 import string
+from typing import Any
 
 from nltk.stem import PorterStemmer
 
 DEFAULT_SEARCH_LIMIT = 5
+SCORE_PRECISION = 3
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 MOVIES_PATH = os.path.join(PROJECT_ROOT, "data", "movies.json")
@@ -59,3 +61,13 @@ def remove_stopwords(input: list, stopwords: list) -> list:
             continue
         output.append(word)
     return output
+
+
+def format_search_result(doc_id: str, title: str, document: str, score: float, **metadata: Any) -> dict[str, Any]:
+    return {
+        "id": doc_id,
+        "title": title,
+        "document": document,
+        "score": round(score, SCORE_PRECISION),
+        "metadata": metadata if metadata else {},
+    }
