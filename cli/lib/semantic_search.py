@@ -2,8 +2,6 @@ import json
 import os
 import re
 from collections import defaultdict
-from itertools import islice
-from typing import OrderedDict
 
 import numpy as np
 from lib.search_utils import (DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE,
@@ -160,14 +158,11 @@ class ChunkedSemanticSearch(SemanticSearch):
         return self.build_chunk_embeddings(documents)
 
     def search_chunks(self, query: str, limit: int = 10) -> list[dict]:
+        if self.chunk_embeddings is None or self.chunk_metadata is None:
+            raise ValueError("No chunk embeddings loaded")
+
         query_embedding = self.generate_embedding(query)
         chunk_score = []
-
-        if self.chunk_embeddings is None:
-            return []
-
-        if self.chunk_metadata is None:
-            return []
 
         for i, chunk in enumerate(self.chunk_embeddings):
             score = cosine_similarity(query_embedding, chunk)
@@ -180,26 +175,25 @@ class ChunkedSemanticSearch(SemanticSearch):
                 }
             )
 
-        movies_to_scores = defaultdict()
+        movies_to_scores = {}
         for score in chunk_score:
+            movie_idx = score["movie_idx"]
             if (
-                movies_to_scores.get(score["movie_idx"]) is None
-                or movies_to_scores[score["movie_idx"]] < score["score"]
+                movie_idx not in movies_to_scores
+                or movies_to_scores[movie_idx] < score["score"]
             ):
-                movies_to_scores[score["movie_idx"]] = score["score"]
+                movies_to_scores[movie_idx] = score["score"]
 
-        movies_to_scores = OrderedDict(
-            sorted(movies_to_scores.items(), key=lambda kv: kv[1], reverse=True)
-        )
-        top_movies = dict(islice(movies_to_scores.items(), limit))
+        sorted_movies = sorted(movies_to_scores.items(), key=lambda x: x[1], reverse=True)
 
         results = []
-        for k, v in top_movies.items():
+        for movie_idx, score in sorted_movies[:limit]:
+            doc = self.documents[movie_idx]
             result = format_search_result(
-                str(k),
-                self.documents[k]["title"],
-                self.documents[k]["description"][:100],
-                v,
+                doc_id=doc["id"],
+                title=doc["title"],
+                document=doc["description"][:100],
+                score=score,
             )
             results.append(result)
 

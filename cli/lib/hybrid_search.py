@@ -1,5 +1,7 @@
 import os
+from typing import Optional
 
+from lib.query_enhancement import enhance_query
 from lib.search_utils import DEFAULT_K_VALUE, format_search_result, load_movies
 
 from .keyword_search import InvertedIndex
@@ -38,13 +40,30 @@ class HybridSearch:
         return combined[:limit]
 
 
-def rrf_search_command(query: str, k: int = DEFAULT_K_VALUE, limit: int = 5) -> dict:
+def rrf_search_command(
+    query: str,
+    k: int = DEFAULT_K_VALUE,
+    enhance: Optional[str] = None,
+    rerank_method: Optional[str] = None,
+    limit: int = 5,
+) -> dict:
     movies = load_movies()
     hybrid_search = HybridSearch(movies)
 
+    if rerank_method and rerank_method == "individual":
+        limit *= 5
+
+    original_query = query
+    enhanced_query = None
+    if enhance:
+        enhanced_query = enhance_query(query, method=enhance)
+        query = enhanced_query
+
     result = hybrid_search.rrf_search(query, k, limit)
     return {
-        "original_query": query,
+        "original_query": original_query,
+        "enhanced_query": enhanced_query,
+        "enhanced_method": enhance,
         "query": query,
         "k": k,
         "results": result,
@@ -167,7 +186,7 @@ def rrf_combine_search_results(
         combined[doc_id]["bm25_rank"] = i
 
     for i, result in enumerate(semantic_results, 1):
-        doc_id = result["id"]
+        doc_id = int(result["id"])
         if doc_id not in combined:
             combined[doc_id] = {
                 "title": result["title"],
@@ -193,5 +212,6 @@ def rrf_combine_search_results(
             bm25_rank=data["bm25_rank"],
             semantic_rank=data["semantic_rank"],
         )
+        hybrid_results.append(result)
 
     return sorted(hybrid_results, key=lambda x: x["score"], reverse=True)
