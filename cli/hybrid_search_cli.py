@@ -1,7 +1,5 @@
 import argparse
-import time
 
-from lib.query_enhancement import rerank_result
 from lib.hybrid_search import (normalize_scores, rrf_search_command,
                                weighted_search_command)
 from lib.search_utils import DEFAULT_K_VALUE
@@ -40,39 +38,43 @@ def main() -> None:
         "--limit", type=int, default=5, help="The number of results to return"
     )
     rrf_search_parser.add_argument(
-        "--enhance", type=str, choices=["spell", "rewrite", "expand"], help="Query enhancement method"
+        "--enhance",
+        type=str,
+        choices=["spell", "rewrite", "expand"],
+        help="Query enhancement method",
     )
     rrf_search_parser.add_argument(
-        "--rerank-method", type=str, choices=["individual"], help="Reranke the returned results"
+        "--rerank-method", type=str, choices=["individual", "batch", "cross_encoder"], help="Reranking method"
     )
 
     args = parser.parse_args()
 
     match args.command:
         case "rrf-search":
-            results = rrf_search_command(args.query, args.k, args.enhance, args.rerank_method, args.limit)
+            results = rrf_search_command(
+                args.query, args.k, args.enhance, args.rerank_method, args.limit
+            )
 
             if results["enhanced_query"]:
                 print(
                     f"Enhanced query ({results['enhanced_method']}): '{results['original_query']}' -> '{results['enhanced_query']}'\n"
                 )
 
-            if args.rerank_method:
-                if results["enhanced_query"]:
-                    query = results["enhanced_query"]
-                else:
-                    query = args.query
-                for i, result in enumerate(results["results"]):
-                    rerank_score = rerank_result(query, result, args.rerank_method)
-                    results["results"][i]["rerank_score"] = rerank_score
-                    time.sleep(3) 
-
-                results["results"] = sorted(results["results"], key=lambda x :x["rerank_score"], reverse=True)[:args.limit]
+            if results["reranked"]:
+                print(
+                    f"Reranking top {len(results['results'])} results using {results['rerank_method']} method...\n"
+                )
 
             for i, result in enumerate(results["results"], 1):
                 print(f"{i}. {result["title"]}")
-                if args.rerank_method:
-                    print(f"   Rerank Score: {result["rerank_score"]:.3f}/10")
+                if "individual_score" in result:
+                    print(
+                        f"   Rerank Score: {result.get('individual_score', 0):.3f}/10"
+                    )
+                if "batch_rank":
+                    print(f"   Rerank Rank: {result.get('batch_rank', 0)}")
+                if "cross_encoder_score" in result:
+                    print(f"   Cross Encoder Score: {result.get('cross_encoder_score', 0):3f}")
                 print(f"   RRF Score: {result.get("score", 0):.3f}")
                 metadata = result.get("metadata", {})
                 if "bm25_rank" in metadata and "semantic_rank" in metadata:

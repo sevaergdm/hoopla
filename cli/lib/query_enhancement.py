@@ -81,32 +81,3 @@ def enhance_query(query: str, method: Optional[str] = None) -> str:
             return spell_correct(query)
         case _:
             return query
-
-
-def rerank_individual(query: str, doc: dict) -> int:
-    prompt = f"""Rate how well this movie matches the search query.
-
-Query: "{query}"
-Movie: {doc.get("title", "")} - {doc.get("document", "")}
-
-Consider:
-- Direct relevance to query
-- User intent (what they're looking for)
-- Content appropriateness
-
-Rate 0-10 (10 = perfect match).
-Give me ONLY the number in your response, no other text or explanation.
-
-Score:"""
-
-    response = client.models.generate_content(model=model, contents=prompt)
-    corrected = (response.text or "").strip().strip('"')
-    return int(corrected)
-
-
-def rerank_result(query: str, doc: dict, method: Optional[str] = None) -> int:
-    match method:
-        case "individual":
-            return rerank_individual(query, doc)
-        case _:
-            return 0

@@ -1,6 +1,7 @@
 import os
 from typing import Optional
 
+from lib.reranking import rerank_result
 from lib.query_enhancement import enhance_query
 from lib.search_utils import DEFAULT_K_VALUE, format_search_result, load_movies
 
@@ -59,14 +60,23 @@ def rrf_search_command(
         enhanced_query = enhance_query(query, method=enhance)
         query = enhanced_query
 
-    result = hybrid_search.rrf_search(query, k, limit)
+    search_limit = limit * 5 if rerank_method else limit
+    results = hybrid_search.rrf_search(query, k, search_limit)
+
+    reranked = False
+    if rerank_method:
+        results = rerank_result(query, results, rerank_method, limit)
+        reranked = True
+
     return {
         "original_query": original_query,
         "enhanced_query": enhanced_query,
         "enhanced_method": enhance,
         "query": query,
         "k": k,
-        "results": result,
+        "rerank_method": rerank_method,
+        "reranked": reranked,
+        "results": results,
     }
 
 
