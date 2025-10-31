@@ -1,5 +1,6 @@
 import argparse
 
+from lib.evaluation import llm_evaluation
 from lib.hybrid_search import (normalize_scores, rrf_search_command,
                                weighted_search_command)
 from lib.search_utils import DEFAULT_K_VALUE
@@ -46,6 +47,9 @@ def main() -> None:
     rrf_search_parser.add_argument(
         "--rerank-method", type=str, choices=["individual", "batch", "cross_encoder"], help="Reranking method"
     )
+    rrf_search_parser.add_argument(
+        "--evaluate", action="store_true", help="Evaluate search result"
+    )
 
     args = parser.parse_args()
 
@@ -64,6 +68,11 @@ def main() -> None:
                 print(
                     f"Reranking top {len(results['results'])} results using {results['rerank_method']} method...\n"
                 )
+
+            if args.evaluate:
+                eval = llm_evaluation(args.query, results["results"])
+                for i, (res, score) in enumerate(zip(results["results"], eval), 1):
+                    print(f"{i}. {res['title']}: {score}/3")
 
             for i, result in enumerate(results["results"], 1):
                 print(f"{i}. {result["title"]}")

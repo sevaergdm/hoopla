@@ -21,6 +21,8 @@ def main():
     for query, result in results["results"].items():
         print(f"- Query: {query}")
         print(f"  - Precision@{limit}: {result["precision"]:.4f}")
+        print(f"  - Recall@{limit}: {result["recall"]:.4f}")
+        print(f"  - F1 Score: {result["f1"]:.4f}")
         print(f"  - Retrieved: {result["retrieved"]}")
         print(f"  - Relevant: {result["relevant"]}")
         print()

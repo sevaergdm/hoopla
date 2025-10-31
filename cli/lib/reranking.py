@@ -1,9 +1,9 @@
 import os
 from time import sleep
+import json
 
 from dotenv import load_dotenv
 from google import genai
-from google.genai.files import json
 from sentence_transformers import CrossEncoder
 
 load_dotenv()
